@@ -1,12 +1,71 @@
-- 👋 Hi, I’m @JamaludinGT
-- 👀 I’m interested in ...
-- 🌱 I’m currently learning ...
-- 💞️ I’m looking to collaborate on ...
-- 📫 How to reach me ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
 
-<!---
-JamaludinGT/JamaludinGT is a ✨ special ✨ repository because its `README.md` (this file) appears on your GitHub profile.
-You can click the Preview link to take a look at your changes.
---->
+import cv2
+import dlib
+
+# Inisialisasi detector wajah dan landmark
+detector = dlib.get_frontal_face_detector()
+predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")  # File model landmark wajah
+
+# Fungsi untuk mendeteksi hidung
+def detect_nose(frame):
+    # Konversi ke grayscale
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    
+    # Deteksi wajah
+    faces = detector(gray)
+    
+    for face in faces:
+        # Dapatkan landmark wajah
+        landmarks = predictor(gray, face)
+        
+        # Titik landmark untuk hidung (27-35 dalam model 68 titik)
+        nose_points = []
+        for n in range(27, 36):
+            x = landmarks.part(n).x
+            y = landmarks.part(n).y
+            nose_points.append((x, y))
+            cv2.circle(frame, (x, y), 2, (0, 255, 0), -1)  # Gambar titik landmark
+        
+        # Gambar poligon di sekitar hidung
+        if len(nose_points) > 0:
+            hull = cv2.convexHull(np.array(nose_points))
+            cv2.drawContours(frame, [hull], -1, (0, 255, 0), 1)
+            
+            # Hitung pusat hidung
+            M = cv2.moments(hull)
+            if M["m00"] != 0:
+                cX = int(M["m10"] / M["m00"])
+                cY = int(M["m01"] / M["m00"])
+                cv2.circle(frame, (cX, cY), 5, (0, 0, 255), -1)
+                cv2.putText(frame, "HIDUNG", (cX - 20, cY - 20), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+    
+    return frame
+
+# Main program
+def main():
+    # Buka kamera
+    cap = cv2.VideoCapture(0)
+    
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+            
+        # Deteksi hidung
+        frame = detect_nose(frame)
+        
+        # Tampilkan frame
+        cv2.imshow("Deteksi Hidung", frame)
+        
+        # Keluar dengan tekan 'q'
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    
+    # Bersihkan
+    cap.release()
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    import numpy as np
+    main()
